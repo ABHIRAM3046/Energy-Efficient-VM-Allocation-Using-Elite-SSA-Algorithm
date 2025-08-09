@@ -97,7 +97,7 @@ From the experimental analysis:
 ---
 
 ## Algorithm Workflow
-! [Workflow](/Results/fig1.jpg)
+![Workflow](/Results/fig1.jpg)
 ## 📈 Results Summary
 
 | Algorithm | Policy | SLA Violation (%) | Power (kWh) | VM Migrations | Exec Time (s) |
