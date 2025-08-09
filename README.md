@@ -53,16 +53,19 @@ From the experimental analysis:
  ┣ 📜 README.md
  ┣ 📜 LICENSE
  ┣ 📂 src
- ┃ ┣ 📜 SSA.java
- ┃ ┣ 📜 ESSA.java
- ┃ ┣ 📜 WOA.java
- ┃ ┣ 📜 VMSelectionMU.java
- ┃ ┣ 📜 VMSelectionMMT.java
- ┃ ┣ 📜 DVFS.java
- ┃ ┗ 📜 CloudSimMain.java
+ ┃ ┣ 📜 Elitesparrow_mmt.java
+ ┃ ┣ 📜 PowerVmAllocationPolicyMigrationEliteSparrowSearch.java
+ ┃ ┣ 📜 PowerVmAllocationPolicyMigrationSparrowSearch.java
+ ┃ ┣ 📜 PowerVmAllocationPolicyMigrationWhaleOptimization.java
+ ┃ ┣ 📜 PowerVmSelectionPolicyMinimumMigrationTime.java
+ ┃ ┣ 📜 PowerVmSelectionPolicyMinimumUtilization.java
+ ┃ ┣ 📜 elitesparrow.java
+ ┃ ┣ 📜 sparrowMu.java
+ ┃ ┣ 📜 sparrowmmt.java
+ ┃ ┣ 📜 whalemmt.java
+ ┃ ┗ 📜 whalemu.java
  ┗ 📂 results
-    ┣ 📊 graphs.png
-    ┗ 📜 performance_tables.csv
+   ┗ 📊 Graphs
 ```
 
 ---
@@ -93,6 +96,8 @@ From the experimental analysis:
 
 ---
 
+## Algorithm Workflow
+![Workflow][/Results/fig1.jpg]
 ## 📈 Results Summary
 
 | Algorithm | Policy | SLA Violation (%) | Power (kWh) | VM Migrations | Exec Time (s) |
