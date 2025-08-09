@@ -1,0 +1,201 @@
+package org.cloudbus.cloudsim.power;
+
+import java.util.Arrays;
+import java.util.List;
+import org.cloudbus.cloudsim.Host;
+import org.cloudbus.cloudsim.Log;
+import org.cloudbus.cloudsim.Vm;
+
+/**
+ * The Elite Sparrow Search Algorithm (ESSA) based VM allocation policy.
+ * 
+ * ESSA optimizes VM placement in cloud data centers by selecting the best host
+ * based on CPU and memory utilization while prioritizing elite solutions.
+ * 
+ * @author AbhiRam
+ */
+public class PowerVmAllocationPolicyMigrationEliteSparrowSearch extends PowerVmAllocationPolicyMigrationAbstract {
+
+    /** The safety parameter. */
+    private double safetyParameter = 0;
+
+    /** The fallback VM allocation policy. */
+    private PowerVmAllocationPolicyMigrationAbstract fallbackVmAllocationPolicy;
+
+    /** Elite percentage for selection */
+    private double elitePercentage = 0.2;
+
+    /**
+     * Instantiates a new ESSA-based VM allocation policy.
+     * 
+     * @param hostList the host list
+     * @param vmSelectionPolicy the VM selection policy
+     * @param safetyParameter the safety parameter
+     * @param fallbackVmAllocationPolicy the fallback policy
+     */
+    public PowerVmAllocationPolicyMigrationEliteSparrowSearch(
+            List<? extends Host> hostList,
+            PowerVmSelectionPolicy vmSelectionPolicy,
+            double safetyParameter,
+            double elitePercentage,
+            PowerVmAllocationPolicyMigrationAbstract fallbackVmAllocationPolicy) {
+        super(hostList, vmSelectionPolicy);
+        setSafetyParameter(safetyParameter);
+        setElitePercentage(elitePercentage);
+        setFallbackVmAllocationPolicy(fallbackVmAllocationPolicy);
+    }
+
+    /**
+     * Determines if a host is over-utilized based on ESSA-based dynamic threshold.
+     * 
+     * @param host the host
+     * @return true if over-utilized, false otherwise
+     */
+    @Override
+    protected boolean isHostOverUtilized(PowerHost host) {
+        if (!(host instanceof PowerHostUtilizationHistory)) {
+            return getFallbackVmAllocationPolicy().isHostOverUtilized(host);
+        }
+
+        PowerHostUtilizationHistory _host = (PowerHostUtilizationHistory) host;
+        double upperThreshold = 0;
+        try {
+            upperThreshold = 1 - getSafetyParameter() * getHostUtilizationEliteSparrow(_host);
+        } catch (IllegalArgumentException e) {
+            return getFallbackVmAllocationPolicy().isHostOverUtilized(host);
+        }
+        addHistoryEntry(host, upperThreshold);
+        double totalRequestedMips = 0;
+        for (Vm vm : host.getVmList()) {
+            totalRequestedMips += vm.getCurrentRequestedTotalMips();
+        }
+        double utilization = totalRequestedMips / host.getTotalMips();
+        return utilization > upperThreshold;
+    }
+
+    /**
+     * Calculates the dynamic host utilization threshold using Elite Sparrow Search Algorithm.
+     * 
+     * @param host the host
+     * @return the calculated ESSA-based threshold
+     */
+    protected double getHostUtilizationEliteSparrow(PowerHostUtilizationHistory host) throws IllegalArgumentException {
+        double[] data = host.getUtilizationHistory();
+        if (countNonZeroBeginning(data) >= 12) { // At least 12 valid values required
+            return eliteSparrowSearch(data);
+        }
+        return calculateMean(data);  // Use mean if not enough data
+    }
+
+    /**
+     * Implements Elite Sparrow Search Algorithm (ESSA) for threshold calculation.
+     * 
+     * @param data utilization history
+     * @return computed threshold value
+     */
+    private double eliteSparrowSearch(double[] data) {
+        double[] sortedData = Arrays.copyOf(data, data.length);
+        Arrays.sort(sortedData);
+        int eliteCount = (int) Math.ceil(elitePercentage * sortedData.length);
+        double eliteAverage = 0;
+        for (int i = 0; i < eliteCount; i++) {
+            eliteAverage += sortedData[i];
+        }
+        return eliteAverage / eliteCount;
+    }
+    /**
+     * Calculates the mean of an array.
+     * 
+     * @param data input array
+     * @return mean value
+     */
+    private double calculateMean(double[] data) {
+        double sum = 0;
+        int count = 0;
+        for (double value : data) {
+            if (value > 0) { // Ignore zero values
+                sum += value;
+                count++;
+            }
+        }
+        return count == 0 ? 0 : sum / count;
+    }
+    /**
+     * Counts the number of non-zero values at the beginning of an array.
+     * 
+     * @param data input array
+     * @return count of non-zero values at the beginning
+     */
+    private int countNonZeroBeginning(double[] data) {
+        int count = 0;
+        for (double value : data) {
+            if (value == 0) break;
+            count++;
+        }
+        return count;
+    }
+    /**
+     * Sets the safety parameter.
+     * 
+     * @param safetyParameter the new safety parameter
+     */
+    protected void setSafetyParameter(double safetyParameter) {
+        if (safetyParameter < 0) {
+            Log.printLine("The safety parameter cannot be less than zero. The passed value is: "
+                    + safetyParameter);
+            System.exit(0);
+        }
+        this.safetyParameter = safetyParameter;
+    }
+
+    /**
+     * Gets the safety parameter.
+     * 
+     * @return the safety parameter
+     */
+    protected double getSafetyParameter() {
+        return safetyParameter;
+    }
+
+    /**
+     * Sets the elite percentage.
+     * 
+     * @param elitePercentage the elite percentage
+     */
+    protected void setElitePercentage(double elitePercentage) {
+        if (elitePercentage <= 0 || elitePercentage > 1) {
+            Log.printLine("Elite percentage must be between 0 and 1. The passed value is: "
+                    + elitePercentage);
+            System.exit(0);
+        }
+        this.elitePercentage = elitePercentage;
+    }
+
+    /**
+     * Gets the elite percentage.
+     * 
+     * @return the elite percentage
+     */
+    protected double getElitePercentage() {
+        return elitePercentage;
+    }
+
+    /**
+     * Sets the fallback VM allocation policy.
+     * 
+     * @param fallbackVmAllocationPolicy the new fallback VM allocation policy
+     */
+    public void setFallbackVmAllocationPolicy(
+            PowerVmAllocationPolicyMigrationAbstract fallbackVmAllocationPolicy) {
+        this.fallbackVmAllocationPolicy = fallbackVmAllocationPolicy;
+    }
+
+    /**
+     * Gets the fallback VM allocation policy.
+     * 
+     * @return the fallback VM allocation policy
+     */
+    public PowerVmAllocationPolicyMigrationAbstract getFallbackVmAllocationPolicy() {
+        return fallbackVmAllocationPolicy;
+    }
+}
